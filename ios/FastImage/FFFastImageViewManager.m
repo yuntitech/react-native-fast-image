@@ -11,7 +11,7 @@ RCT_EXPORT_MODULE(FastImageView)
   return [[FFFastImageView alloc] init];
 }
 
-RCT_EXPORT_VIEW_PROPERTY(resizeImageIOS, NSDictionary)
+RCT_EXPORT_VIEW_PROPERTY(resizeImage, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(source, FFFastImageSource)
 RCT_EXPORT_VIEW_PROPERTY(resizeMode, RCTResizeMode)
 RCT_EXPORT_VIEW_PROPERTY(onFastImageLoadStart, RCTDirectEventBlock)

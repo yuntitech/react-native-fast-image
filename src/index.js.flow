@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-08-05 16:46:49
- * @LastEditTime: 2020-08-05 16:50:49
+ * @LastEditTime: 2020-08-05 17:23:34
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /react-native-fast-image/src/index.js.flow
@@ -32,7 +32,7 @@ export type ResizeMode = $ReadOnly<{|
     center: 'center',
 |}>
 
-export type ResizeImageIOS = $ReadOnly<{|
+export type ResizeImage = $ReadOnly<{|
     width: number,
     height: number,
 |}>
@@ -72,7 +72,7 @@ export type FastImageProps = $ReadOnly<{|
     source: FastImageSource | number,
 
     resizeMode?: ?ResizeModes,
-    ResizeImageIOS?: ?ResizeImageIOS,
+    ResizeImage?: ?ResizeImageIOS,
     fallback?: ?boolean,
     testID?: ?string,
 |}>

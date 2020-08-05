@@ -23,10 +23,10 @@
     return self;
 }
 
-- (void)setResizeImageIOS:(NSDictionary *)resizeImageIOS
+- (void)setResizeImage:(NSDictionary *)resizeImage
 {
-    if (_resizeImageIOS != resizeImageIOS) {
-        _resizeImageIOS = resizeImageIOS;
+    if (_resizeImage != resizeImage) {
+        _resizeImage = resizeImage;
     }
 }
 
@@ -223,17 +223,17 @@
                 }
         } else {
             /**
-             判断传入的 resizeImageiOS 是否有效
+             判断传入的 resizeImage 是否有效
              然后判断图片是否是 GIF 格式，分别走两套逻辑，最后在主线程上设置 image
              */
-            if (weakSelf.resizeImageiOS != nil && weakSelf.resizeImageiOS.allKeys.count > 0 && weakSelf.resizeImageiOS.allValues.count > 0) {
+            if (weakSelf.resizeImage != nil && weakSelf.resizeImage.allKeys.count > 0 && weakSelf.resizeImage.allValues.count > 0) {
                 SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:data];
                 __block UIImage *resizedImage = nil;
                 dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
                     if (imageFormat == SDImageFormatGIF) {
-                        resizedImage = [weakSelf resizeGifImage:image imageData:data dimension:weakSelf.resizeImageiOS];
+                        resizedImage = [weakSelf resizeGifImage:image imageData:data dimension:weakSelf.resizeImage];
                     } else {
-                        resizedImage = [weakSelf resizeImage:image imageData:data dimension:weakSelf.resizeImageiOS];
+                        resizedImage = [weakSelf resizeImage:image imageData:data dimension:weakSelf.resizeImage];
                     }
                     
                     dispatch_sync(dispatch_get_main_queue(), ^{
