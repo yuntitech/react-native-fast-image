@@ -1,6 +1,7 @@
 #import "FFFastImageView.h"
 #import <SDWebImage/UIImage+MultiFormat.h>
-
+#import <SDWebImage/UIView+WebCache.h>
+#import <AVFoundation/AVFoundation.h>
 @interface FFFastImageView()
 
 @property (nonatomic, assign) BOOL hasSentOnLoadStart;
@@ -20,6 +21,13 @@
     self.resizeMode = RCTResizeModeCover;
     self.clipsToBounds = YES;
     return self;
+}
+
+- (void)setResizeImageIOS:(NSDictionary *)resizeImageIOS
+{
+    if (_resizeImageIOS != resizeImageIOS) {
+        _resizeImageIOS = resizeImageIOS;
+    }
 }
 
 - (void)setResizeMode:(RCTResizeMode)resizeMode {
@@ -195,37 +203,161 @@
 
 - (void)downloadImage:(FFFastImageSource *) source options:(SDWebImageOptions) options context:(SDWebImageContext *)context {
     __weak typeof(self) weakSelf = self; // Always use a weak reference to self in blocks
-    [self sd_setImageWithURL:_source.url
-            placeholderImage:nil
-                     options:options
-                     context:context
-                    progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
-                        if (weakSelf.onFastImageProgress) {
-                            weakSelf.onFastImageProgress(@{
-                                                           @"loaded": @(receivedSize),
-                                                           @"total": @(expectedSize)
-                                                           });
+    
+    
+    [self sd_internalSetImageWithURL:_source.url placeholderImage:nil options:options context:[NSMutableDictionary dictionary] setImageBlock:nil progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
+        if (weakSelf.onFastImageProgress) {
+            weakSelf.onFastImageProgress(@{
+                                           @"loaded": @(receivedSize),
+                                           @"total": @(expectedSize)
+                                           });
+        }
+    } completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, SDImageCacheType cacheType, BOOL finished, NSURL * _Nullable imageURL) {
+        if (error) {
+            weakSelf.hasErrored = YES;
+                if (weakSelf.onFastImageError) {
+                    weakSelf.onFastImageError(@{});
+                }
+                if (weakSelf.onFastImageLoadEnd) {
+                    weakSelf.onFastImageLoadEnd(@{});
+                }
+        } else {
+            /**
+             判断传入的 resizeImageiOS 是否有效
+             然后判断图片是否是 GIF 格式，分别走两套逻辑，最后在主线程上设置 image
+             */
+            if (weakSelf.resizeImageiOS != nil && weakSelf.resizeImageiOS.allKeys.count > 0 && weakSelf.resizeImageiOS.allValues.count > 0) {
+                SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:data];
+                __block UIImage *resizedImage = nil;
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                    if (imageFormat == SDImageFormatGIF) {
+                        resizedImage = [weakSelf resizeGifImage:image imageData:data dimension:weakSelf.resizeImageiOS];
+                    } else {
+                        resizedImage = [weakSelf resizeImage:image imageData:data dimension:weakSelf.resizeImageiOS];
+                    }
+                    
+                    dispatch_sync(dispatch_get_main_queue(), ^{
+                        if (resizedImage) {
+                            [UIView transitionWithView:weakSelf duration:1.0 options:UIViewAnimationOptionCurveEaseOut|UIViewAnimationOptionTransitionCrossDissolve animations:^{
+                                [weakSelf setImage:resizedImage];
+                            } completion:nil];
                         }
-                    } completed:^(UIImage * _Nullable image,
-                                  NSError * _Nullable error,
-                                  SDImageCacheType cacheType,
-                                  NSURL * _Nullable imageURL) {
-                        if (error) {
-                            weakSelf.hasErrored = YES;
-                                if (weakSelf.onFastImageError) {
-                                    weakSelf.onFastImageError(@{});
-                                }
-                                if (weakSelf.onFastImageLoadEnd) {
-                                    weakSelf.onFastImageLoadEnd(@{});
-                                }
-                        } else {
-                            weakSelf.hasCompleted = YES;
-                            [weakSelf sendOnLoad:image];
-                            if (weakSelf.onFastImageLoadEnd) {
-                                weakSelf.onFastImageLoadEnd(@{});
-                            }
-                        }
-                    }];
+                    });
+                });
+            }
+             
+            weakSelf.hasCompleted = YES;
+            [weakSelf sendOnLoad:image];
+            if (weakSelf.onFastImageLoadEnd) {
+                weakSelf.onFastImageLoadEnd(@{});
+            }
+        }
+    }];
+}
+
+- (UIImage *)resizeImage:(UIImage *)image imageData:(NSData *)imageData dimension:(NSDictionary *)dimension
+{
+    if (dimension[@"width"] == nil || dimension[@"height"] == nil) {
+        RCTLog(@"resizeImage 参数为空");
+        return image;
+    }
+    
+    CGFloat cropWidth = [dimension[@"width"] floatValue];
+    CGFloat cropHeight = [dimension[@"height"] floatValue];
+    
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)imageData, NULL);
+    if (source) {
+        NSDictionary* options = @{(id)kCGImageSourceShouldAllowFloat : (id)kCFBooleanTrue,
+                                    (id)kCGImageSourceCreateThumbnailWithTransform : (id)kCFBooleanFalse,
+                                    (id)kCGImageSourceCreateThumbnailFromImageIfAbsent : (id)kCFBooleanTrue,
+                                    (id)kCGImageSourceThumbnailMaxPixelSize : @(MAX(cropWidth, cropHeight))
+                                    };
+        
+        CGImageRef imageRef = CGImageSourceCreateThumbnailAtIndex(source, 0, (__bridge CFDictionaryRef)options);
+        if (imageRef) {
+            UIImage *targetImage = [UIImage imageWithCGImage: imageRef];
+            CGImageRelease(imageRef);
+            CFRelease(source);
+            return targetImage;
+        } else {
+            return image;
+        }
+    } else {
+        return image;
+    }
+}
+
+- (UIImage *)resizeGifImage:(UIImage *)image imageData:(NSData *)imageData dimension:(NSDictionary *)dimension
+{
+    if (dimension[@"width"] == nil || dimension[@"height"] == nil) {
+        RCTLog(@"resizeImage 参数为空");
+        return image;
+    }
+    
+    CGFloat cropWidth = [dimension[@"width"] floatValue];
+    CGFloat cropHeight = [dimension[@"height"] floatValue];
+    
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)imageData, NULL);
+    if (source) {
+        // 取出动图的 帧数
+        size_t count = CGImageSourceGetCount(source);
+        NSMutableArray *images = [NSMutableArray array];
+        NSTimeInterval duration = 0;
+        for (size_t i = 0; i < count; i++) {
+            CGImageRef imageRef = [self createThumbnailWithImageSource:source cropWidth:cropWidth cropHeight:cropHeight];
+            if (imageRef) {
+                UIImage *newImage = [UIImage imageWithCGImage:imageRef];
+                [images addObject:newImage];
+                duration += [self hhtk_frameDurationAtIndex:i source:source];
+                CGImageRelease(imageRef);
+            }
+        }
+        UIImage *animatedImage = [UIImage animatedImageWithImages:images duration:duration];
+        CFRelease(source);
+        return animatedImage;
+    } else {
+        return image;
+    }
+}
+
+- (float)hhtk_frameDurationAtIndex:(NSUInteger)index source:(CGImageSourceRef)source {
+    float frameDuration = 0.1f;
+    CFDictionaryRef cfFrameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil);
+    NSDictionary *frameProperties = (__bridge NSDictionary *)cfFrameProperties;
+    NSDictionary *gifProperties = frameProperties[(NSString *)kCGImagePropertyGIFDictionary];
+    
+    NSNumber *delayTimeUnclampedProp = gifProperties[(NSString *)kCGImagePropertyGIFUnclampedDelayTime];
+    if (delayTimeUnclampedProp) {
+        frameDuration = [delayTimeUnclampedProp floatValue];
+    } else {
+        NSNumber *delayTimeProp = gifProperties[(NSString *)kCGImagePropertyGIFDelayTime];
+        if (delayTimeProp) {
+            frameDuration = [delayTimeProp floatValue];
+        }
+    }
+    
+    // Many annoying ads specify a 0 duration to make an image flash as quickly as possible.
+    // We follow Firefox's behavior and use a duration of 100 ms for any frames that specify
+    // a duration of <= 10 ms. See <rdar://problem/7689300> and <http://webkit.org/b/36082>
+    // for more information.
+    
+    if (frameDuration < 0.011f) {
+        frameDuration = 0.100f;
+    }
+    
+    CFRelease(cfFrameProperties);
+    return frameDuration;
+}
+
+- (CGImageRef)createThumbnailWithImageSource:(CGImageSourceRef)imageSource cropWidth:(CGFloat)cropWidth cropHeight:(CGFloat)cropHeight
+{
+    NSDictionary* options = @{(id)kCGImageSourceShouldAllowFloat : (id)kCFBooleanTrue,
+                                (id)kCGImageSourceCreateThumbnailWithTransform : (id)kCFBooleanFalse,
+                                (id)kCGImageSourceCreateThumbnailFromImageIfAbsent : (id)kCFBooleanTrue,
+                                (id)kCGImageSourceThumbnailMaxPixelSize : @(MAX(cropWidth, cropHeight))
+                                };
+    CGImageRef imageRef = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, (__bridge CFDictionaryRef)options);
+    return imageRef;
 }
 
 @end

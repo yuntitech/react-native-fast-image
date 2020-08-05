@@ -43,6 +43,12 @@ const cacheControl = {
     cacheOnly: 'cacheOnly',
 } as const
 
+// 添加 ResizeImageIOS 类型声明
+export type ResizeImageIOS = {
+    width: number
+    height: number
+}
+
 export type Source = {
     uri?: string
     headers?: { [key: string]: string }
