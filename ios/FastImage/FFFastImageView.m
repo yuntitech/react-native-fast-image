@@ -211,56 +211,60 @@
         mutableContext = [NSMutableDictionary dictionary];
     }
     mutableContext[SDWebImageContextAnimatedImageClass] = animatedImageClass;
-    [self sd_internalSetImageWithURL:_source.url placeholderImage:nil options:options context:mutableContext setImageBlock:nil progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
-        if (weakSelf.onFastImageProgress) {
-            weakSelf.onFastImageProgress(@{
-                                           @"loaded": @(receivedSize),
-                                           @"total": @(expectedSize)
-                                           });
-        }
-    } completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, SDImageCacheType cacheType, BOOL finished, NSURL * _Nullable imageURL) {
-        if (error) {
-            weakSelf.hasErrored = YES;
-                if (weakSelf.onFastImageError) {
-                    weakSelf.onFastImageError(@{});
-                }
-                if (weakSelf.onFastImageLoadEnd) {
-                    weakSelf.onFastImageLoadEnd(@{});
-                }
+    
+    if ([self needReizeImage]) {
+        if (self.resizeImage[@"width"] == nil || self.resizeImage[@"height"] == nil) {
+            RCTLog(@"resizeImage 参数为空");
         } else {
-            /**
-             判断传入的 resizeImage 是否有效
-             然后判断图片是否是 GIF 格式，分别走两套逻辑，最后在主线程上设置 image
-             */
-            if (weakSelf.resizeImage != nil && weakSelf.resizeImage.allKeys.count > 0 && weakSelf.resizeImage.allValues.count > 0) {
-                if (data == nil) {
-                    data = image.sd_imageData;
-                }
-                SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:data];
-                __block UIImage *resizedImage = nil;
-                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                    if (imageFormat != SDImageFormatGIF) {
-                        resizedImage = [weakSelf resizeImage:image imageData:data dimension:weakSelf.resizeImage];
-                    }
-                    dispatch_sync(dispatch_get_main_queue(), ^{
-                        if (resizedImage) {
-                            [UIView transitionWithView:weakSelf duration:1.0 options:UIViewAnimationOptionCurveEaseOut|UIViewAnimationOptionTransitionCrossDissolve animations:^{
-                                [weakSelf setImage:resizedImage];
-                            } completion:nil];
-                        }
-                    });
-                });
-            }
-             
-            weakSelf.hasCompleted = YES;
-            [weakSelf sendOnLoad:image];
-            if (weakSelf.onFastImageLoadEnd) {
-                weakSelf.onFastImageLoadEnd(@{});
-            }
+            CGFloat resizeWidth = [self.resizeImage[@"width"] floatValue];
+            CGFloat resizeHeight = [self.resizeImage[@"height"] floatValue];
+            mutableContext[SDWebImageContextImageThumbnailPixelSize] = @(CGSizeMake(resizeWidth, resizeHeight));
         }
-    }];
+    }
+    
+    [self sd_setImageWithURL:_source.url
+    placeholderImage:nil
+             options:options
+             context:mutableContext
+            progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
+                if (weakSelf.onFastImageProgress) {
+                    weakSelf.onFastImageProgress(@{
+                                                   @"loaded": @(receivedSize),
+                                                   @"total": @(expectedSize)
+                                                   });
+                }
+            } completed:^(UIImage * _Nullable image,
+                          NSError * _Nullable error,
+                          SDImageCacheType cacheType,
+                          NSURL * _Nullable imageURL) {
+                if (error) {
+                    weakSelf.hasErrored = YES;
+                        if (weakSelf.onFastImageError) {
+                            weakSelf.onFastImageError(@{});
+                        }
+                        if (weakSelf.onFastImageLoadEnd) {
+                            weakSelf.onFastImageLoadEnd(@{});
+                        }
+                } else {
+                    weakSelf.hasCompleted = YES;
+                    [weakSelf sendOnLoad:image];
+                    if (weakSelf.onFastImageLoadEnd) {
+                        weakSelf.onFastImageLoadEnd(@{});
+                    }
+                }
+            }];
 }
 
+#pragma mark - private methods
+/**
+ 是否需要进行缩放
+ */
+- (BOOL)needReizeImage
+{
+    return self.resizeImage != nil && self.resizeImage.allKeys.count > 0 && self.resizeImage.allValues.count > 0;
+}
+
+#pragma mark - 缩放
 - (UIImage *)resizeImage:(UIImage *)image imageData:(NSData *)imageData dimension:(NSDictionary *)dimension
 {
     if (dimension[@"width"] == nil || dimension[@"height"] == nil) {
