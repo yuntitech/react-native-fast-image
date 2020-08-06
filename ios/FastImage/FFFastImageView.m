@@ -203,9 +203,15 @@
 
 - (void)downloadImage:(FFFastImageSource *) source options:(SDWebImageOptions) options context:(SDWebImageContext *)context {
     __weak typeof(self) weakSelf = self; // Always use a weak reference to self in blocks
-    
-    
-    [self sd_internalSetImageWithURL:_source.url placeholderImage:nil options:options context:[NSMutableDictionary dictionary] setImageBlock:nil progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
+    Class animatedImageClass = [SDAnimatedImage class];
+    SDWebImageMutableContext *mutableContext;
+    if (context) {
+        mutableContext = [context mutableCopy];
+    } else {
+        mutableContext = [NSMutableDictionary dictionary];
+    }
+    mutableContext[SDWebImageContextAnimatedImageClass] = animatedImageClass;
+    [self sd_internalSetImageWithURL:_source.url placeholderImage:nil options:options context:mutableContext setImageBlock:nil progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
         if (weakSelf.onFastImageProgress) {
             weakSelf.onFastImageProgress(@{
                                            @"loaded": @(receivedSize),
@@ -227,15 +233,15 @@
              然后判断图片是否是 GIF 格式，分别走两套逻辑，最后在主线程上设置 image
              */
             if (weakSelf.resizeImage != nil && weakSelf.resizeImage.allKeys.count > 0 && weakSelf.resizeImage.allValues.count > 0) {
+                if (data == nil) {
+                    data = image.sd_imageData;
+                }
                 SDImageFormat imageFormat = [NSData sd_imageFormatForImageData:data];
                 __block UIImage *resizedImage = nil;
                 dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                    if (imageFormat == SDImageFormatGIF) {
-                        resizedImage = [weakSelf resizeGifImage:image imageData:data dimension:weakSelf.resizeImage];
-                    } else {
+                    if (imageFormat != SDImageFormatGIF) {
                         resizedImage = [weakSelf resizeImage:image imageData:data dimension:weakSelf.resizeImage];
                     }
-                    
                     dispatch_sync(dispatch_get_main_queue(), ^{
                         if (resizedImage) {
                             [UIView transitionWithView:weakSelf duration:1.0 options:UIViewAnimationOptionCurveEaseOut|UIViewAnimationOptionTransitionCrossDissolve animations:^{
@@ -275,7 +281,7 @@
         
         CGImageRef imageRef = CGImageSourceCreateThumbnailAtIndex(source, 0, (__bridge CFDictionaryRef)options);
         if (imageRef) {
-            UIImage *targetImage = [UIImage imageWithCGImage: imageRef];
+            UIImage *targetImage = [UIImage imageWithCGImage:imageRef];
             CGImageRelease(imageRef);
             CFRelease(source);
             return targetImage;
@@ -287,7 +293,7 @@
     }
 }
 
-- (UIImage *)resizeGifImage:(UIImage *)image imageData:(NSData *)imageData dimension:(NSDictionary *)dimension
+- (SDAnimatedImage *)resizeGifImage:(SDAnimatedImage *)image imageData:(NSData *)imageData dimension:(NSDictionary *)dimension
 {
     if (dimension[@"width"] == nil || dimension[@"height"] == nil) {
         RCTLog(@"resizeImage 参数为空");
@@ -314,7 +320,7 @@
         }
         UIImage *animatedImage = [UIImage animatedImageWithImages:images duration:duration];
         CFRelease(source);
-        return animatedImage;
+        return [SDAnimatedImage imageWithData:animatedImage.sd_imageData];
     } else {
         return image;
     }
