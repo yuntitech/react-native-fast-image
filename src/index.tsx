@@ -80,7 +80,6 @@ export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     borderBottomLeftRadius?: number
     borderBottomRightRadius?: number
     backgroundColor?: string
-    resizeImageAndroid?: ResizeImageAndroid
     borderColor?: string
     borderWidth?: number
     borderRadius?: number
@@ -96,6 +95,7 @@ export interface FastImageProps extends AccessibilityProps {
     resizeMode?: ResizeMode
     fallback?: boolean
     resizeImage?: ResizeImageIOS
+    resizeImageAndroid?: ResizeImageAndroid
     onLoadStart?(): void
 
     onProgress?(event: OnProgressEvent): void
