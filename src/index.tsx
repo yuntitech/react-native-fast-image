@@ -70,11 +70,17 @@ export interface OnProgressEvent {
     }
 }
 
+export type ResizeImageAndroid = {
+    width: number
+    height: number
+}
+
 export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     backfaceVisibility?: 'visible' | 'hidden'
     borderBottomLeftRadius?: number
     borderBottomRightRadius?: number
     backgroundColor?: string
+    resizeImageAndroid?: ResizeImageAndroid
     borderColor?: string
     borderWidth?: number
     borderRadius?: number

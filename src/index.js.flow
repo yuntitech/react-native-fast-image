@@ -72,6 +72,7 @@ export type FastImageProps = $ReadOnly<{|
     source: FastImageSource | number,
 
     resizeMode?: ?ResizeModes,
+    imageResizeAndroid?: ?ImageResizeAndroid,
     ResizeImage?: ?ResizeImageIOS,
     fallback?: ?boolean,
     testID?: ?string,
@@ -83,3 +84,8 @@ declare export default class FastImage extends React$Component<FastImageProps> {
     static cacheControl: CacheControl;
     static preload: PreloadFn;
 }
+
+export type ImageResizeAndroid = $ReadOnly<{|
+    width: number,
+    height: number,
+|}>
