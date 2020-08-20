@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.PorterDuff;
 import android.os.Build;
+import android.text.TextUtils;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
@@ -73,6 +74,9 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
 
         //final GlideUrl glideUrl = FastImageViewConverter.getGlideUrl(view.getContext(), source);
         final FastImageSource imageSource = FastImageViewConverter.getImageSource(view.getContext(), source);
+        if (imageSource.getUri() == null || TextUtils.isEmpty(imageSource.getUri().toString())) {
+            return;
+        }
         final GlideUrl glideUrl = imageSource.getGlideUrl();
 
         // Cancel existing request.
