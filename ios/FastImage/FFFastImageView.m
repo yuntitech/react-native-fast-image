@@ -218,7 +218,8 @@
         } else {
             CGFloat resizeWidth = [self.resizeImage[@"width"] floatValue];
             CGFloat resizeHeight = [self.resizeImage[@"height"] floatValue];
-            mutableContext[SDWebImageContextImageThumbnailPixelSize] = @(CGSizeMake(resizeWidth, resizeHeight));
+            CGFloat scale = [UIScreen mainScreen].scale;
+            mutableContext[SDWebImageContextImageThumbnailPixelSize] = @(CGSizeMake(resizeWidth * scale, resizeHeight * scale));
         }
     }
     
