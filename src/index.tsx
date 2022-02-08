@@ -11,6 +11,7 @@ import {
     StyleProp,
     TransformsStyle,
     AccessibilityProps,
+    ViewProps,
 } from 'react-native'
 
 const FastImageViewNativeModule = NativeModules.FastImageView
@@ -90,7 +91,7 @@ export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     opacity?: number
 }
 
-export interface FastImageProps extends AccessibilityProps {
+export interface FastImageProps extends AccessibilityProps, ViewProps {
     source: Source | number
     resizeMode?: ResizeMode
     fallback?: boolean
@@ -210,11 +211,13 @@ const FastImageComponent: React.ComponentType<FastImageProps> = forwardRef(
 
 FastImageComponent.displayName = 'FastImage'
 
-interface FastImageStaticProperties {
+export interface FastImageStaticProperties {
     resizeMode: typeof resizeMode
     priority: typeof priority
     cacheControl: typeof cacheControl
     preload: (sources: Source[]) => void
+    clearMemoryCache: () => Promise<void>
+    clearDiskCache: () => Promise<void>
 }
 
 const FastImage: React.ComponentType<FastImageProps> &
@@ -228,6 +231,10 @@ FastImage.priority = priority
 
 FastImage.preload = (sources: Source[]) =>
     FastImageViewNativeModule.preload(sources)
+
+FastImage.clearMemoryCache = () => FastImageViewNativeModule.clearMemoryCache()
+
+FastImage.clearDiskCache = () => FastImageViewNativeModule.clearDiskCache()
 
 const styles = StyleSheet.create({
     imageContainer: {

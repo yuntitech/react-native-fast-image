@@ -370,5 +370,8 @@
     return imageRef;
 }
 
-@end
+- (void)dealloc {
+    [self sd_cancelCurrentImageLoad];
+}
 
+@end
