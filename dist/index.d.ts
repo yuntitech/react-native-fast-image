@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlexStyle, LayoutChangeEvent, ShadowStyleIOS, StyleProp, TransformsStyle, AccessibilityProps } from 'react-native';
+import { FlexStyle, LayoutChangeEvent, ShadowStyleIOS, StyleProp, TransformsStyle, AccessibilityProps, ViewProps } from 'react-native';
 export declare type ResizeMode = 'contain' | 'cover' | 'stretch' | 'center';
 declare const resizeMode: {
     readonly contain: "contain";
@@ -19,7 +19,7 @@ declare const cacheControl: {
     readonly web: "web";
     readonly cacheOnly: "cacheOnly";
 };
-export declare type ResizeImageIOS = {
+export declare type ResizeImage = {
     width: number;
     height: number;
 };
@@ -57,11 +57,11 @@ export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     tintColor?: string;
     opacity?: number;
 }
-export interface FastImageProps extends AccessibilityProps {
+export interface FastImageProps extends AccessibilityProps, ViewProps {
     source: Source | number;
     resizeMode?: ResizeMode;
     fallback?: boolean;
-    resizeImage?: ResizeImageIOS;
+    resizeImage?: ResizeImage;
     onLoadStart?(): void;
     onProgress?(event: OnProgressEvent): void;
     onLoad?(event: OnLoadEvent): void;
@@ -95,11 +95,13 @@ export interface FastImageProps extends AccessibilityProps {
      */
     children?: React.ReactNode;
 }
-interface FastImageStaticProperties {
+export interface FastImageStaticProperties {
     resizeMode: typeof resizeMode;
     priority: typeof priority;
     cacheControl: typeof cacheControl;
     preload: (sources: Source[]) => void;
+    clearMemoryCache: () => Promise<void>;
+    clearDiskCache: () => Promise<void>;
 }
 declare const FastImage: React.ComponentType<FastImageProps> & FastImageStaticProperties;
 export default FastImage;

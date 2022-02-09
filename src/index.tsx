@@ -45,7 +45,7 @@ const cacheControl = {
 } as const
 
 // 添加 ResizeImageIOS 类型声明
-export type ResizeImageIOS = {
+export type ResizeImage = {
     width: number
     height: number
 }
@@ -71,10 +71,6 @@ export interface OnProgressEvent {
     }
 }
 
-export type ResizeImageAndroid = {
-    width: number
-    height: number
-}
 
 export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     backfaceVisibility?: 'visible' | 'hidden'
@@ -95,8 +91,7 @@ export interface FastImageProps extends AccessibilityProps, ViewProps {
     source: Source | number
     resizeMode?: ResizeMode
     fallback?: boolean
-    resizeImage?: ResizeImageIOS
-    resizeImageAndroid?: ResizeImageAndroid
+    resizeImage?: ResizeImage
     onLoadStart?(): void
 
     onProgress?(event: OnProgressEvent): void

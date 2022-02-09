@@ -88,6 +88,10 @@ FastImage.priority = priority;
 
 FastImage.preload = sources => FastImageViewNativeModule.preload(sources);
 
+FastImage.clearMemoryCache = () => FastImageViewNativeModule.clearMemoryCache();
+
+FastImage.clearDiskCache = () => FastImageViewNativeModule.clearDiskCache();
+
 const styles = StyleSheet.create({
   imageContainer: {
     overflow: 'hidden'

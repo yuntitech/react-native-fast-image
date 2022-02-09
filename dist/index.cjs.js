@@ -1,11 +1,13 @@
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var _extends = _interopDefault(require('@babel/runtime/helpers/extends'));
+var _extends = require('@babel/runtime/helpers/extends');
 var React = require('react');
-var React__default = _interopDefault(React);
 var reactNative = require('react-native');
+
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var _extends__default = /*#__PURE__*/_interopDefaultLegacy(_extends);
+var React__default = /*#__PURE__*/_interopDefaultLegacy(React);
 
 const FastImageViewNativeModule = reactNative.NativeModules.FastImageView;
 const resizeMode = {
@@ -49,10 +51,10 @@ function FastImageBase({
     };
     delete cleanedSource.cache;
     const resolvedSource = reactNative.Image.resolveAssetSource(cleanedSource);
-    return /*#__PURE__*/React__default.createElement(reactNative.View, {
+    return /*#__PURE__*/React__default['default'].createElement(reactNative.View, {
       style: [styles.imageContainer, style],
       ref: forwardedRef
-    }, /*#__PURE__*/React__default.createElement(reactNative.Image, _extends({}, props, {
+    }, /*#__PURE__*/React__default['default'].createElement(reactNative.Image, _extends__default['default']({}, props, {
       style: reactNative.StyleSheet.absoluteFill,
       source: resolvedSource,
       onLoadStart: onLoadStart,
@@ -65,10 +67,10 @@ function FastImageBase({
   }
 
   const resolvedSource = reactNative.Image.resolveAssetSource(source);
-  return /*#__PURE__*/React__default.createElement(reactNative.View, {
+  return /*#__PURE__*/React__default['default'].createElement(reactNative.View, {
     style: [styles.imageContainer, style],
     ref: forwardedRef
-  }, /*#__PURE__*/React__default.createElement(FastImageView, _extends({}, props, {
+  }, /*#__PURE__*/React__default['default'].createElement(FastImageView, _extends__default['default']({}, props, {
     tintColor: tintColor,
     style: reactNative.StyleSheet.absoluteFill,
     source: resolvedSource,
@@ -82,7 +84,7 @@ function FastImageBase({
 }
 
 const FastImageMemo = /*#__PURE__*/React.memo(FastImageBase);
-const FastImageComponent = /*#__PURE__*/React.forwardRef((props, ref) => /*#__PURE__*/React__default.createElement(FastImageMemo, _extends({
+const FastImageComponent = /*#__PURE__*/React.forwardRef((props, ref) => /*#__PURE__*/React__default['default'].createElement(FastImageMemo, _extends__default['default']({
   forwardedRef: ref
 }, props)));
 FastImageComponent.displayName = 'FastImage';
@@ -92,6 +94,10 @@ FastImage.cacheControl = cacheControl;
 FastImage.priority = priority;
 
 FastImage.preload = sources => FastImageViewNativeModule.preload(sources);
+
+FastImage.clearMemoryCache = () => FastImageViewNativeModule.clearMemoryCache();
+
+FastImage.clearDiskCache = () => FastImageViewNativeModule.clearDiskCache();
 
 const styles = reactNative.StyleSheet.create({
   imageContainer: {
